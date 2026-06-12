@@ -1,0 +1,41 @@
+name: Deploy Staging
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-staging:
+    name: Deploy Staging Dry Run
+    runs-on:
+      - self-hosted
+      - macOS
+      - ARM64
+      - toolhub
+      - macmini
+    environment: staging
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Dry-run staging deployment skeleton
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Dry-run staging deployment skeleton only."
+          echo "Current commit: ${GITHUB_SHA}"
+          echo "No staging deployment will be performed."
+          echo "No services will be restarted."
+          echo "No secrets or environment files will be read."
+          echo "No database migrations will be run."
+          echo "No production or staging runtime will be modified."
+          echo "Required future gates:"
+          echo "- Define staging runtime path."
+          echo "- Define staging environment strategy."
+          echo "- Add staging smoke tests."
+          echo "- Add reviewed staging deployment script."
+          # TODO: Call a future reviewed staging deployment script here after all gates exist.
+          exit 0

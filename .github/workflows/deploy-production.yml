@@ -1,0 +1,45 @@
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-production:
+    name: Deploy Production Dry Run
+    runs-on:
+      - self-hosted
+      - macOS
+      - ARM64
+      - toolhub
+      - macmini
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Dry-run production deployment skeleton
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Dry-run production deployment skeleton only."
+          echo "Current commit: ${GITHUB_SHA}"
+          echo "Production deployment is not enabled."
+          echo "No production deployment will be performed."
+          echo "No services will be restarted."
+          echo "No secrets or environment files will be read."
+          echo "No database migrations will be run."
+          echo "No production runtime will be modified."
+          echo "Required future gates:"
+          echo "- Require GitHub Environment approval."
+          echo "- Require production backup report."
+          echo "- Require rollback plan."
+          echo "- Require passing PR Check."
+          echo "- Require staging smoke test."
+          echo "- Require release notes."
+          echo "- Require human approval."
+          # TODO: Call a future reviewed production deployment script here only after every gate exists.
+          exit 0

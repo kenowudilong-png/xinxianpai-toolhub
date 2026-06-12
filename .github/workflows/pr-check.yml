@@ -1,0 +1,86 @@
+name: PR Check
+
+on:
+  pull_request:
+    branches:
+      - main
+      - staging
+
+permissions:
+  contents: read
+
+jobs:
+  pr-check:
+    name: PR Check
+    runs-on:
+      - self-hosted
+      - macOS
+      - ARM64
+      - toolhub
+      - macmini
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run web typecheck when available
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -d apps/web ]; then
+            pnpm --filter web typecheck
+          else
+            echo "Skipping web typecheck: apps/web does not exist."
+          fi
+
+      - name: Run GIP server build when available
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f apps/gip-team/package.json ]; then
+            if node -e "const p=require('./apps/gip-team/package.json'); process.exit(p.scripts && p.scripts['build:server'] ? 0 : 1)"; then
+              cd apps/gip-team
+              npm run build:server
+            else
+              echo "Skipping GIP server build: apps/gip-team package.json has no build:server script."
+            fi
+          else
+            echo "Skipping GIP server build: apps/gip-team/package.json does not exist."
+          fi
+
+      - name: Run audit integrity script when available
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -x scripts/audit-integrity.sh ]; then
+            scripts/audit-integrity.sh
+          elif [ -f scripts/audit-integrity.sh ]; then
+            bash scripts/audit-integrity.sh
+          else
+            echo "Skipping audit integrity: scripts/audit-integrity.sh does not exist."
+          fi
+
+      - name: Run repository check script when available
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -x scripts/check.sh ]; then
+            scripts/check.sh
+          elif [ -f scripts/check.sh ]; then
+            bash scripts/check.sh
+          else
+            echo "Skipping repository check: scripts/check.sh does not exist."
+          fi
