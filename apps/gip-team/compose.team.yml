@@ -1,0 +1,16 @@
+services:
+  gip-team:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.team
+    restart: unless-stopped
+    ports:
+      - "18082:3000"
+    environment:
+      APP_SECRET: ${APP_SECRET:?set APP_SECRET}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      DATA_DIR: /data
+      LOG_PROMPTS: ${LOG_PROMPTS:-false}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-20}
+    volumes:
+      - ./data:/data

@@ -1,0 +1,56 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "noEmit": true,
+    "incremental": true,
+    "jsx": "preserve",
+    "module": "ESNext",
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "src/*",
+        "../../packages/ui/@/*",
+        "../../packages/ui/src/*"
+      ],
+      "@xinxianpai/shared": [
+        "../../packages/shared/src/index.ts"
+      ],
+      "@xinxianpai/db": [
+        "../../packages/db/src/index.ts"
+      ],
+      "@xinxianpai/storage": [
+        "../../packages/storage/src/index.ts"
+      ],
+      "@xinxianpai/ui/*": [
+        "../../packages/ui/src/*"
+      ],
+      "@xinxianpai/ui/components/ui/*": [
+        "../../packages/ui/@/components/ui/*"
+      ],
+      "@xinxianpai/ui/lib/*": [
+        "../../packages/ui/@/lib/*"
+      ]
+    },
+    "isolatedModules": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    ".next/types/**/*.ts",
+    "../../packages/ui/**/*.ts",
+    "../../packages/ui/**/*.tsx",
+    "../../packages/shared/src/**/*.ts",
+    "../../packages/db/src/**/*.ts",
+    "../../packages/storage/src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

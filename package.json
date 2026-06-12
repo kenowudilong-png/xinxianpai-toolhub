@@ -1,0 +1,21 @@
+{
+  "name": "xinxianpai-toolhub",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter @xinxianpai/shared build && pnpm --filter @xinxianpai/db build && pnpm --filter @xinxianpai/storage build && pnpm --filter @xinxianpai/ui build && pnpm --filter web build",
+    "lint": "pnpm --filter web lint",
+    "typecheck": "pnpm --filter @xinxianpai/shared typecheck && pnpm --filter @xinxianpai/db typecheck && pnpm --filter @xinxianpai/storage typecheck && pnpm --filter @xinxianpai/ui typecheck && pnpm --filter web typecheck",
+    "test": "pnpm -r test",
+    "check": "bash scripts/check.sh"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.29",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "ali-oss": "^6.22.0"
+  }
+}

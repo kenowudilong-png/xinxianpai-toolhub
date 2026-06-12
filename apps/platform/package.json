@@ -1,0 +1,32 @@
+{
+  "name": "@xinxianpai/platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -H 0.0.0.0 -p ${PORT:-18082}",
+    "build": "next build",
+    "start": "next start -H 0.0.0.0 -p ${PORT:-18083}",
+    "lint": "next lint || true",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test .next-test/**/*.js 2>/dev/null || true"
+  },
+  "dependencies": {
+    "@xinxianpai/db": "workspace:*",
+    "@xinxianpai/shared": "workspace:*",
+    "@xinxianpai/storage": "workspace:*",
+    "better-sqlite3": "^12.10.0",
+    "nanoid": "^5.1.5",
+    "next": "^15.3.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.29",
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.5",
+    "eslint": "^9.28.0",
+    "eslint-config-next": "^15.3.3",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,69 @@
+node_modules
+.next
+dist
+.env.production
+.env.local
+*.sqlite
+data
+.DS_Store
+
+# Local runtime data
+.local-data/
+.local-logs/
+.server-snapshot-path
+
+# Environment and secrets
+.env
+.env.*
+*.env
+!.env.example
+*.pem
+*.key
+*.crt
+secrets/
+
+# Databases and user data
+*.sqlite-*
+*.db
+*.db-*
+data/
+runtime/
+users/
+files/
+uploads/
+generated/
+storage/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Node / build outputs
+node_modules/
+.next/
+out/
+dist/
+dist-server/
+build/
+coverage/
+.cache/
+*.tsbuildinfo
+
+# Test artifacts
+playwright-report/
+test-results/
+
+# Backups and archives
+backups/
+.gitignore.backup.*
+*.bak-*
+*.tar
+*.tar.gz
+*.zip
+
+# macOS/editor
+.idea/
+.vscode/
+*.swp
