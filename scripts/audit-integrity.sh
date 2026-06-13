@@ -31,12 +31,15 @@ require_grep "name=\"password\"[^\n]*minLength=\{8\}[^\n]*required" apps/web/src
 require_grep "currentPassword" apps/web/src/lib/actions.ts apps/web/src/app/settings/password/page.tsx
 require_grep "verifyPassword" apps/web/src/lib/actions.ts
 
-# API config create/update/delete must be wired and never display encrypted key.
-require_grep "createApiConfigAction" apps/web/src/app/admin/api-configs/page.tsx apps/web/src/lib/actions.ts
-require_grep "updateApiConfigAction" apps/web/src/app/admin/api-configs/page.tsx apps/web/src/lib/actions.ts
-require_grep "deleteApiConfigAction" apps/web/src/app/admin/api-configs/page.tsx apps/web/src/lib/actions.ts
-require_grep "toolId" apps/web/src/app/admin/api-configs/page.tsx apps/web/src/lib/actions.ts
-require_grep "models_json" packages/db/src/index.ts apps/web/src/lib/data.ts apps/web/src/app/admin/api-configs/page.tsx
+# API config actions and app settings must be wired and never display encrypted key.
+require_file apps/web/src/app/admin/app-settings/page.tsx
+require_file apps/web/src/app/admin/app-settings/gip/page.tsx
+require_grep "createApiConfigAction" apps/web/src/lib/actions.ts
+require_grep "updateApiConfigAction" apps/web/src/lib/actions.ts
+require_grep "deleteApiConfigAction" apps/web/src/lib/actions.ts
+require_grep "toolId" apps/web/src/lib/actions.ts
+require_grep "models_json" packages/db/src/index.ts apps/web/src/lib/data.ts
+require_grep "/tools/gip/app/admin\\?settings=1" apps/web/src/app/admin/app-settings/gip/page.tsx apps/web/src/components/app-settings-cards.tsx
 reject_grep "encrypted_key" apps/web/src/app/admin/api-configs/page.tsx apps/web/src/components
 
 # Tool management create/update/toggle/reorder/tutorial must be wired to frontend forms.
@@ -141,6 +144,8 @@ reject_grep "createReadStream\(" apps/gip-team/server/index.ts
 echo "integrity audit ok"
 
 # OSS CORS must allow browser fetch of signed image URLs for preview hydration.
-if [ "${STORAGE_DRIVER:-local}" = "oss" ]; then
+if [ "${CHECK_PRODUCTION_ENV:-0}" = "1" ] && [ "${STORAGE_DRIVER:-local}" = "oss" ]; then
   require_grep "OSS_ENDPOINT_PUBLIC" .env.production
+else
+  echo "Skipping production env integrity check. Set CHECK_PRODUCTION_ENV=1 for release-only validation."
 fi

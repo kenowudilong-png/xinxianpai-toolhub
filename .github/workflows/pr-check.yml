@@ -53,6 +53,7 @@ jobs:
           if [ -f apps/gip-team/package.json ]; then
             if node -e "const p=require('./apps/gip-team/package.json'); process.exit(p.scripts && p.scripts['build:server'] ? 0 : 1)"; then
               cd apps/gip-team
+              npm ci
               npm run build:server
             else
               echo "Skipping GIP server build: apps/gip-team package.json has no build:server script."
@@ -66,9 +67,9 @@ jobs:
         run: |
           set -euo pipefail
           if [ -x scripts/audit-integrity.sh ]; then
-            scripts/audit-integrity.sh
+            CHECK_MODE=pr scripts/audit-integrity.sh
           elif [ -f scripts/audit-integrity.sh ]; then
-            bash scripts/audit-integrity.sh
+            CHECK_MODE=pr bash scripts/audit-integrity.sh
           else
             echo "Skipping audit integrity: scripts/audit-integrity.sh does not exist."
           fi
@@ -78,9 +79,9 @@ jobs:
         run: |
           set -euo pipefail
           if [ -x scripts/check.sh ]; then
-            scripts/check.sh
+            CHECK_MODE=pr scripts/check.sh
           elif [ -f scripts/check.sh ]; then
-            bash scripts/check.sh
+            CHECK_MODE=pr bash scripts/check.sh
           else
             echo "Skipping repository check: scripts/check.sh does not exist."
           fi
