@@ -76,7 +76,7 @@ function migrateMainDatabase(db: MainDatabase) {
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
       content TEXT NOT NULL,
-      level TEXT NOT NULL DEFAULT info CHECK(level IN (info, success, warning, danger)),
+      level TEXT NOT NULL DEFAULT 'info' CHECK(level IN ('info', 'success', 'warning', 'danger')),
       enabled INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL

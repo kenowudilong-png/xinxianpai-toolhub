@@ -33,6 +33,10 @@ files/
 uploads/
 generated/
 storage/
+!packages/storage/
+!packages/storage/**
+!apps/web/src/app/admin/users/
+!apps/web/src/app/admin/users/**
 
 # Logs
 logs/
