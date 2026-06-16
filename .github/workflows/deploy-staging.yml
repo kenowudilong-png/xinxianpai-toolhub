@@ -21,13 +21,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Dry-run staging deployment skeleton
+      - name: Dry-run staging deployment
         shell: bash
         run: |
           set -euo pipefail
-          echo "Dry-run staging deployment skeleton only."
+          echo "Dry-run staging deployment only."
           echo "Current commit: ${GITHUB_SHA}"
-          echo "No staging deployment will be performed."
+          bash scripts/deploy-staging.sh --ref "${{ github.sha }}"
+          echo "No staging deployment was performed."
           echo "No services will be restarted."
           echo "No secrets or environment files will be read."
           echo "No database migrations will be run."
@@ -36,6 +37,5 @@ jobs:
           echo "- Define staging runtime path."
           echo "- Define staging environment strategy."
           echo "- Add staging smoke tests."
-          echo "- Add reviewed staging deployment script."
-          # TODO: Call a future reviewed staging deployment script here after all gates exist.
+          echo "- Approve execute mode separately after all gates exist."
           exit 0
