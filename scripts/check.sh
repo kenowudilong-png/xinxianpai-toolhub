@@ -28,6 +28,7 @@ port_listening() {
   fi
 }
 pnpm typecheck
+pnpm lint
 pnpm build
 if [ -x apps/gip-team/node_modules/.bin/tsc ]; then
   (cd apps/gip-team && npm run build:all)

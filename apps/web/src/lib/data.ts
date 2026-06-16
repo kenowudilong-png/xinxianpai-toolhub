@@ -50,6 +50,21 @@ export type UsageFilters = {
   toolId?: string;
 };
 
+export type UsageLogRow = {
+  id: string;
+  user_id: string | null;
+  tool_id: string | null;
+  provider: string | null;
+  model: string | null;
+  status: string;
+  duration_ms: number | null;
+  error_message: string | null;
+  created_at: string;
+  username: string | null;
+  display_name: string | null;
+  tool_name: string | null;
+};
+
 export type AnnouncementRow = {
   id: string;
   title: string;
@@ -105,7 +120,7 @@ export function listUsageLogs(filters: UsageFilters = {}) {
   if (filters.userId) { clauses.push("usage_logs.user_id = ?"); params.push(filters.userId); }
   if (filters.toolId) { clauses.push("usage_logs.tool_id = ?"); params.push(filters.toolId); }
   const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-  return db().prepare(`SELECT usage_logs.*, users.username, users.display_name, tools.name AS tool_name FROM usage_logs LEFT JOIN users ON users.id = usage_logs.user_id LEFT JOIN tools ON tools.id = usage_logs.tool_id ${where} ORDER BY usage_logs.created_at DESC LIMIT 200`).all(...params) as any[];
+  return db().prepare(`SELECT usage_logs.*, users.username, users.display_name, tools.name AS tool_name FROM usage_logs LEFT JOIN users ON users.id = usage_logs.user_id LEFT JOIN tools ON tools.id = usage_logs.tool_id ${where} ORDER BY usage_logs.created_at DESC LIMIT 200`).all(...params) as UsageLogRow[];
 }
 
 export function usageSummary() {

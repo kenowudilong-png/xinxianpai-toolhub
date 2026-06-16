@@ -7,7 +7,7 @@
     "dev": "next dev -H 0.0.0.0 -p ${PORT:-18082}",
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p ${PORT:-18083}",
-    "lint": "next lint || true",
+    "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "true"
   },
@@ -38,6 +38,9 @@
     "@types/node": "^22.15.29",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.5",
+    "@eslint/eslintrc": "^3.3.1",
+    "eslint": "^9.28.0",
+    "eslint-config-next": "^15.3.3",
     "typescript": "^5.8.3"
   }
 }

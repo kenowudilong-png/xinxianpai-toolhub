@@ -8,6 +8,15 @@ import type { UserRole } from "@xinxianpai/shared";
 import { ensureUserToolSpaces } from "./tool-data";
 
 export type SessionUser = { id: string; username: string; displayName: string; role: UserRole; mustChangePassword: boolean };
+type UserRecord = {
+  id: string;
+  username: string;
+  display_name: string | null;
+  password_hash: string;
+  role: UserRole;
+  must_change_password: number;
+  disabled?: number;
+};
 const cookieName = "xxp_session";
 
 export async function hashPassword(password: string) {
@@ -40,7 +49,7 @@ export async function createUser(input: { username: string; displayName?: string
 }
 
 export async function login(username: string, password: string) {
-  const user = db().prepare("SELECT * FROM users WHERE username = ? AND disabled = 0").get(username) as any;
+  const user = db().prepare("SELECT * FROM users WHERE username = ? AND disabled = 0").get(username) as UserRecord | undefined;
   if (!user || !(await verifyPassword(user.password_hash, password))) return null;
   db().prepare("UPDATE users SET last_login_at = ? WHERE id = ?").run(new Date().toISOString(), user.id);
   return { id: user.id, username: user.username, displayName: user.display_name || user.username, role: user.role, mustChangePassword: Boolean(user.must_change_password) } as SessionUser;
@@ -63,7 +72,7 @@ export async function currentUser(): Promise<SessionUser | null> {
   if (!body || !sig || !safeEqual(sign(body), sig)) return null;
   const parsed = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
   if (!parsed.expires || parsed.expires < Date.now()) return null;
-  const row = db().prepare("SELECT id, username, display_name, role, must_change_password, disabled FROM users WHERE id = ?").get(parsed.id) as any;
+  const row = db().prepare("SELECT id, username, display_name, role, must_change_password, disabled FROM users WHERE id = ?").get(parsed.id) as UserRecord | undefined;
   if (!row || row.disabled) return null;
   return { id: row.id, username: row.username, displayName: row.display_name || row.username, role: row.role, mustChangePassword: Boolean(row.must_change_password) };
 }

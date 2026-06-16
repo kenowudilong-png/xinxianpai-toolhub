@@ -4,16 +4,31 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { decryptSecret } from "@/lib/crypto";
 
+type ProxyRequestBody = {
+  toolId?: FormDataEntryValue | string;
+  model?: FormDataEntryValue | string;
+  prompt?: FormDataEntryValue | string;
+};
+
+type ApiConfig = {
+  encrypted_key: string;
+  model: string;
+  models_json?: string | null;
+  note?: string | null;
+  provider?: string | null;
+};
+
 export async function POST(request: Request) {
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const started = Date.now();
   const contentType = request.headers.get("content-type") || "";
   const body = contentType.includes("application/json") ? await request.json().catch(() => ({})) : Object.fromEntries((await request.formData()).entries());
-  const toolId = String((body as any).toolId || "gip");
-  const requestedModel = String((body as any).model || "");
+  const requestBody = body as ProxyRequestBody;
+  const toolId = String(requestBody.toolId || "gip");
+  const requestedModel = String(requestBody.model || "");
   const database = db();
-  const config = database.prepare("SELECT * FROM api_configs WHERE enabled = 1 AND tool_id = ? ORDER BY is_default DESC, created_at ASC LIMIT 1").get(toolId) as any;
+  const config = database.prepare("SELECT * FROM api_configs WHERE enabled = 1 AND tool_id = ? ORDER BY is_default DESC, created_at ASC LIMIT 1").get(toolId) as ApiConfig | undefined;
   if (!config) {
     writeLog(user.id, toolId, "missing_config", Date.now() - started, "No API config");
     return NextResponse.json({ error: "API config missing" }, { status: 400 });
@@ -22,14 +37,14 @@ export async function POST(request: Request) {
     const models = JSON.parse(config.models_json || "[]") as string[];
     const model = requestedModel || models[0] || config.model;
     if (model && models.length && !models.includes(model)) {
-      writeLog(user.id, toolId, "failed", Date.now() - started, "Model not allowed", config.note || config.provider, model);
+      writeLog(user.id, toolId, "failed", Date.now() - started, "Model not allowed", config.note || config.provider || undefined, model);
       return NextResponse.json({ error: "Model not configured for this tool" }, { status: 400 });
     }
     decryptSecret(config.encrypted_key);
-    writeLog(user.id, toolId, "success", Date.now() - started, null, config.note || config.provider, model);
-    return NextResponse.json({ ok: true, proxied: true, toolId, provider: config.note || config.provider, model, request: { hasPrompt: Boolean((body as any).prompt) } });
+    writeLog(user.id, toolId, "success", Date.now() - started, null, config.note || config.provider || undefined, model);
+    return NextResponse.json({ ok: true, proxied: true, toolId, provider: config.note || config.provider, model, request: { hasPrompt: Boolean(requestBody.prompt) } });
   } catch (error) {
-    writeLog(user.id, toolId, "failed", Date.now() - started, error instanceof Error ? error.message : "proxy error", config.note || config.provider, config.model);
+    writeLog(user.id, toolId, "failed", Date.now() - started, error instanceof Error ? error.message : "proxy error", config.note || config.provider || undefined, config.model);
     return NextResponse.json({ error: "Proxy failed" }, { status: 502 });
   }
 }
