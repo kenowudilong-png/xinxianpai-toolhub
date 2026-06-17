@@ -47,6 +47,18 @@ scripts/rollback.sh --env prod --backup <backup-dir>
 
 The rollback plan must identify the backup directory, data root, pre-rollback safety copy path, and production confirmation requirement.
 
+## Production Release Manifest Gate
+
+Production release must be traceable to an approved Git commit. Before any future production deployment is enabled, generate a read-only release manifest from the approved source tree:
+
+```bash
+scripts/release-manifest.sh --env prod --ref <approved-ref> --deploy-root /opt/xinxianpai-toolhub
+```
+
+The script prints the manifest to stdout and does not write to the deployment root, read env files, read database contents, deploy, restart services, or modify Git. Copying a manifest into production is a separate release step and requires explicit Keno approval.
+
+A production deployment is not considered release-ready unless the deployed runtime has a manifest whose `Commit` value matches the approved PR/release commit.
+
 ## Tag Strategy
 
 Use immutable tags for baseline and release checkpoints.
