@@ -31,6 +31,15 @@ Real staging environment values are not stored in Git. The staging environment f
 
 Staging must use separate database paths, upload paths, runtime paths, and object storage configuration from production. Do not copy production environment files into staging.
 
+Staging service helper scripts require an explicit `STAGING_ENV_FILE` and refuse production-like filenames. Do not point staging helpers at `.env.production`.
+
+Example:
+
+```bash
+STAGING_ENV_FILE=/Users/mima0000/Documents/xinxianpai/staging/env/toolhub.env \
+  scripts/start-web-staging.sh
+```
+
 Recommended OSS separation:
 
 ```text
