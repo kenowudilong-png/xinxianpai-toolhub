@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BACKUPS_ROOT="/Users/mima0000/Documents/xinxianpai/backups"
+BACKUPS_ROOT="${XINXIANPAI_BACKUPS_ROOT:-/Users/mima0000/Documents/xinxianpai/backups}"
 STAGING_DATA_ROOT="/Users/mima0000/Documents/xinxianpai/staging/data"
-PROD_DATA_ROOT="${XINXIANPAI_PROD_DATA_ROOT:-/Users/mima0000/Documents/xinxianpai/prod/data}"
+PROD_DATA_ROOT="${XINXIANPAI_PROD_DATA_ROOT:-/var/lib/xinxianpai-toolhub}"
 EXECUTE=0
 ENV_NAME=""
 BACKUP_DIR=""
