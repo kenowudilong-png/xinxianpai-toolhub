@@ -24,12 +24,6 @@ export default {
           DEFAULT: 'hsl(var(--sidebar) / <alpha-value>)',
           foreground: 'hsl(var(--sidebar-foreground) / <alpha-value>)',
         },
-        brand: {
-          primary: '#40AF36',
-          accent: '#FEDB56',
-          dark: '#233D2B',
-          soft: '#E9F0C8',
-        },
       },
       fontFamily: {
         sans: ['var(--font-ui-sans)'],

@@ -80,10 +80,6 @@ export function putAgentConversation(conversation: AgentConversation): Promise<I
   return dbTransaction(STORE_AGENT_CONVERSATIONS, 'readwrite', (s) => s.put(conversation))
 }
 
-export function deleteAgentConversation(id: string): Promise<undefined> {
-  return dbTransaction(STORE_AGENT_CONVERSATIONS, 'readwrite', (s) => s.delete(id))
-}
-
 export function clearAgentConversations(): Promise<undefined> {
   return dbTransaction(STORE_AGENT_CONVERSATIONS, 'readwrite', (s) => s.clear())
 }
@@ -235,9 +231,14 @@ function hashDataUrlFallback(dataUrl: string): string {
   return `fallback-${(h1 >>> 0).toString(16).padStart(8, '0')}${(h2 >>> 0).toString(16).padStart(8, '0')}`
 }
 
+export interface StoreImageResult {
+  id: string
+  width?: number
+  height?: number
+}
+
 /**
- * 存储图片，若已存在（按 hash 去重）则跳过。
- * 返回 image id。
+ * 存储指定 id 的图片，供服务端返回的稳定 imageId 回填本地 IndexedDB。
  */
 export async function storeImageWithId(id: string, dataUrl: string, source: NonNullable<StoredImage['source']> = 'generated'): Promise<string> {
   const existing = await getImage(id)
@@ -278,7 +279,15 @@ export async function storeImageWithId(id: string, dataUrl: string, source: NonN
   return id
 }
 
+/**
+ * 存储图片，若已存在（按 hash 去重）则跳过。
+ * 返回 image id 及图片真实宽高。
+ */
 export async function storeImage(dataUrl: string, source: NonNullable<StoredImage['source']> = 'upload'): Promise<string> {
+  return (await storeImageWithSize(dataUrl, source)).id
+}
+
+export async function storeImageWithSize(dataUrl: string, source: NonNullable<StoredImage['source']> = 'upload'): Promise<StoreImageResult> {
   const id = await hashDataUrl(dataUrl)
   const existing = await getImage(id)
   if (!existing) {
@@ -300,8 +309,13 @@ export async function storeImage(dataUrl: string, source: NonNullable<StoredImag
         thumbnailVersion: THUMBNAIL_VERSION,
       })
     }
-  } else if ((await getStoredImageThumbnail(id))?.thumbnailVersion !== THUMBNAIL_VERSION) {
+    return { id, width: thumbnail.width, height: thumbnail.height }
+  }
+
+  if ((await getStoredImageThumbnail(id))?.thumbnailVersion !== THUMBNAIL_VERSION) {
     const thumbnail = await safeCreateImageThumbnail(existing.dataUrl)
+    const width = thumbnail.width ?? existing.width
+    const height = thumbnail.height ?? existing.height
     if (thumbnail.width && thumbnail.height && (existing.width !== thumbnail.width || existing.height !== thumbnail.height)) {
       await putImage({ ...existing, width: thumbnail.width, height: thumbnail.height })
     }
@@ -314,8 +328,9 @@ export async function storeImage(dataUrl: string, source: NonNullable<StoredImag
         thumbnailVersion: THUMBNAIL_VERSION,
       })
     }
+    return { id, width, height }
   }
-  return id
+  return { id, width: existing.width, height: existing.height }
 }
 
 function loadImage(dataUrl: string): Promise<HTMLImageElement> {
