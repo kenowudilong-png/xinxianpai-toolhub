@@ -11,7 +11,12 @@ if [ -d "$ROOT_DIR/runtime/node/bin" ]; then export PATH="$ROOT_DIR/runtime/node
 if [ -d "$USER_HOME/.local/node-v20.19.0-darwin-arm64/bin" ]; then export PATH="$USER_HOME/.local/node-v20.19.0-darwin-arm64/bin:$PATH"; fi
 
 set -a
-source .env.production
+LOCAL_ENV_FILE="${LOCAL_ENV_FILE:-$ROOT_DIR/.env.production}"
+if [ -f "$LOCAL_ENV_FILE" ]; then
+  source "$LOCAL_ENV_FILE"
+else
+  echo "Warning: $LOCAL_ENV_FILE not found; using safe local defaults." >&2
+fi
 set +a
 
 export DATA_DIR=${DATA_DIR:-$ROOT_DIR/.local-data}

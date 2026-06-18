@@ -41,6 +41,9 @@ else
 fi
 bash scripts/audit-harness.sh
 bash scripts/audit-integrity.sh
+if [ -f scripts/factory-audit.sh ]; then
+  bash scripts/factory-audit.sh
+fi
 if [ "$CHECK_MODE" = "release" ]; then
   if port_listening "${PORT:-18083}"; then curl -fsSI "http://127.0.0.1:${PORT:-18083}/" >/dev/null; fi
   if port_listening 18085; then curl -fsS "http://127.0.0.1:18085/api/health" >/dev/null; fi
