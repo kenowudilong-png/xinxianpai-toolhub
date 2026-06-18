@@ -42,7 +42,7 @@ import {
   storeImageWithId,
 } from './lib/db'
 import { callImageApi } from './lib/api'
-import { callAgentConversationTitleApi, callAgentResponsesApi, parseBatchImageCallArguments, type AgentApiResultImage, type BatchImageCallResult } from './lib/agentApi'
+import { callAgentConversationTitleApi, callAgentResponsesApi, callBatchImageSingle, parseBatchImageCallArguments, type AgentApiResultImage, type BatchImageCallResult } from './lib/agentApi'
 import { deleteServerTask, exportServerTasks, getServerAgentConversations, getServerImage, getServerTasks, syncServerAgentConversations, uploadServerImage } from './team/serverState'
 import { teamApi } from './team/api'
 import { collectAgentRoundOutputImageSlots, extractAgentReferenceIds, getAgentCurrentReferenceId, getAgentGeneratedImageReferenceId, replaceAgentPromptImageReferencesForApi } from './lib/agentImageReferences'
@@ -1068,16 +1068,20 @@ export const useStore = create<AppState>()(
     (set, get) => ({
       // Mode
       appMode: 'gallery',
-      setAppMode: (_appMode) => {
+      setAppMode: (appMode) => {
         const state = get()
         const galleryInputDraft = saveGalleryInputDraft(state)
+        const agentInputDrafts = saveActiveAgentInputDrafts(state)
         set((state) => ({
-          appMode: 'gallery',
+          appMode,
           galleryInputDraft,
+          agentInputDrafts,
           agentMobileHeaderVisible: true,
           selectedTaskIds: [],
           agentEditingRoundId: null,
-          ...(state.appMode === 'agent' ? restoreGalleryInputDraftState(galleryInputDraft) : {}),
+          ...(appMode === 'agent'
+            ? restoreAgentInputDraftState(agentInputDrafts, state.activeAgentConversationId)
+            : restoreGalleryInputDraftState(galleryInputDraft)),
         }))
       },
 
@@ -3366,29 +3370,37 @@ async function executeAgentRound(
 
         try {
           const taskId = taskIdByToolCallId.get(batchToolCallId)
-          const result = await callImageApi({
-            settings: requestSettings,
-            prompt: replaceImageMentionsForApi(item.prompt, references.dataUrls.length),
+          const result = await callBatchImageSingle({
+            profile: activeProfile,
             params: { ...params, n: 1 },
-            inputImageDataUrls: references.dataUrls,
-            taskId,
-            agentSessionId: conversationId,
-          })
-          const imageDataUrl = result.images[0]
-          const image: AgentApiResultImage | null = imageDataUrl
-            ? {
-                dataUrl: imageDataUrl,
-                revisedPrompt: result.revisedPrompts?.[0],
-                actualParams: result.actualParamsList?.[0] ?? result.actualParams,
-                toolCallId: batchToolCallId,
-              }
-            : null
-          if (image) await completeAgentImageTask(image, JSON.stringify({ taskId: result.taskId, imageIds: result.imageIds ?? [] }, null, 2))
-          return {
             batchItemId: item.id,
+            prompt: item.prompt,
+            referenceImageDataUrls: references.dataUrls,
+            referenceIds,
+            signal: controller.signal,
+            onImageToolStarted: async () => {
+              await ensureStreamingAgentTask(batchToolCallId)
+            },
+            onPartialImage: async ({ image, partialImageIndex }) => {
+              const streamingTaskId = await ensureStreamingAgentTask(batchToolCallId)
+              useStore.getState().setTaskStreamPreview(streamingTaskId, image, partialImageIndex)
+              if (partialImageIndex === 0 || partialImageIndex == null) {
+                void persistTaskStreamPartialImage(streamingTaskId, image)
+              }
+            },
+            onImageToolCompleted: async (image) => {
+              await completeAgentImageTask({ ...image, toolCallId: batchToolCallId })
+            },
+          })
+          const image = result.image
+            ? { ...result.image, toolCallId: result.image.toolCallId ?? batchToolCallId }
+            : null
+          if (image) await completeAgentImageTask(image, result.rawResponsePayload)
+          return {
+            batchItemId: result.batchItemId,
             image,
-            error: image ? null : '服务端未返回图片',
-            rawResponsePayload: JSON.stringify({ taskId: result.taskId, imageIds: result.imageIds ?? [] }, null, 2),
+            error: result.error ?? (image ? null : '服务端未返回图片'),
+            rawResponsePayload: result.rawResponsePayload,
           } satisfies BatchImageCallResult
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err)
