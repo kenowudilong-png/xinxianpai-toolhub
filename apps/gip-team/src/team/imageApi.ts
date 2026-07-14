@@ -27,6 +27,7 @@ export async function callTeamImageApi(opts: CallApiOptions): Promise<CallApiRes
       inputImageDataUrls: opts.inputImageDataUrls,
       maskDataUrl: opts.maskDataUrl,
       mode: opts.settings.apiMode,
+      taskId: opts.taskId,
     }),
   })
 

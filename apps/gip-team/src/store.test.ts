@@ -4,6 +4,15 @@ import { DEFAULT_PARAMS } from './types'
 import { createDefaultFalProfile, createDefaultOpenAIProfile, DEFAULT_RESPONSES_MODEL, DEFAULT_SETTINGS, normalizeSettings } from './lib/apiProfiles'
 import type { AgentConversation, ExportData, StoredImage, StoredImageThumbnail, TaskRecord } from './types'
 import { getSelectedImageMentionLabel } from './lib/promptImageMentions'
+
+const serverStateMocks = vi.hoisted(() => ({
+  getServerTasks: vi.fn(async (): Promise<TaskRecord[] | null> => null),
+  getServerImage: vi.fn(async (): Promise<string | undefined> => undefined),
+  deleteServerTask: vi.fn(async () => undefined),
+}))
+
+vi.mock('./team/serverState', () => serverStateMocks)
+
 vi.mock('./lib/db', () => {
   const tasks = new Map<string, TaskRecord>()
   const images = new Map<string, StoredImage>()
@@ -295,6 +304,19 @@ describe('mask draft lifecycle in store actions', () => {
     expect(state.showToast).toHaveBeenCalledWith('任务已提交', 'success')
   })
 
+  it('uses the client task id for the platform generation request', async () => {
+    const { callImageApi } = await import('./lib/api')
+    vi.mocked(callImageApi).mockClear()
+
+    await submitTask()
+    const [submittedTask] = useStore.getState().tasks
+    await vi.waitFor(() => expect(callImageApi).toHaveBeenCalled())
+
+    expect(callImageApi).toHaveBeenCalledWith(expect.objectContaining({
+      taskId: submittedTask.id,
+    }))
+  })
+
   it('stores decoded image size as actual size when the API omits size', async () => {
     const { callImageApi } = await import('./lib/api')
     vi.mocked(callImageApi).mockClear()
@@ -561,6 +583,61 @@ describe('input persistence setting', () => {
 
     expect(persisted.prompt).toBe('')
     expect(persisted.inputImages).toEqual([])
+  })
+})
+
+describe('server task synchronization', () => {
+  beforeEach(async () => {
+    await clearTasks()
+    await clearImages()
+    serverStateMocks.getServerTasks.mockReset()
+    serverStateMocks.getServerTasks.mockResolvedValue(null)
+    serverStateMocks.deleteServerTask.mockReset()
+    serverStateMocks.deleteServerTask.mockResolvedValue(undefined)
+    useStore.setState({
+      tasks: [],
+      favoriteCollections: [],
+      defaultFavoriteCollectionId: null,
+      inputImages: [],
+      galleryInputDraft: null,
+      agentConversations: [],
+      agentInputDrafts: {},
+    })
+  })
+
+  it('loads server tasks when the local IndexedDB is empty', async () => {
+    const serverTask = task({ id: 'server-task', prompt: '服务端历史记录' })
+    serverStateMocks.getServerTasks.mockResolvedValueOnce([serverTask])
+
+    await initStore()
+
+    expect(serverStateMocks.getServerTasks).toHaveBeenCalledOnce()
+    expect(useStore.getState().tasks.map((item) => item.id)).toEqual(['server-task'])
+  })
+
+  it('keeps local-only tasks while preferring server data for matching ids', async () => {
+    await putDbTask(task({ id: 'server-task', prompt: '本地旧副本' }))
+    await putDbTask(task({ id: 'local-task', prompt: '仅本地记录', createdAt: 3 }))
+    serverStateMocks.getServerTasks.mockResolvedValueOnce([
+      task({ id: 'server-task', prompt: '服务端记录' }),
+    ])
+
+    await initStore()
+
+    expect(useStore.getState().tasks.map((item) => [item.id, item.prompt])).toEqual([
+      ['local-task', '仅本地记录'],
+      ['server-task', '服务端记录'],
+    ])
+  })
+
+  it('deletes a server-backed task from the server as well as IndexedDB', async () => {
+    const serverTask = task({ id: 'server-task' })
+    await putDbTask(serverTask)
+    useStore.setState({ tasks: [serverTask] })
+
+    await removeTask(serverTask)
+
+    expect(serverStateMocks.deleteServerTask).toHaveBeenCalledWith('server-task')
   })
 })
 

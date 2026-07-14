@@ -46,7 +46,7 @@ import { callImageApi } from './lib/api'
 import { callAgentConversationTitleApi, callAgentResponsesApi, callBatchImageSingle, parseBatchImageCallArguments, type AgentApiResultImage } from './lib/agentApi'
 import { collectAgentRoundOutputImageSlots, extractAgentReferenceIds, getAgentCurrentReferenceId, getAgentGeneratedImageReferenceId, replaceAgentPromptImageReferencesForApi } from './lib/agentImageReferences'
 import { showBrowserNotification } from './lib/browserNotification'
-import { getServerImage } from './team/serverState'
+import { deleteServerTask, getServerImage, getServerTasks } from './team/serverState'
 import { IMAGE_FETCH_CORS_HINT } from './lib/imageApiShared'
 import { getFalErrorMessage, getFalQueuedImageResult } from './lib/falAiImageApi'
 import { getCustomQueuedImageResult } from './lib/openaiCompatibleImageApi'
@@ -2154,7 +2154,12 @@ async function recoverFalTask(taskId: string) {
 /** 初始化：从 IndexedDB 加载任务，按需恢复输入图片，并清理孤立图片 */
 export async function initStore() {
   const legacyAgentConversations = normalizeAgentConversations(useStore.getState().agentConversations)
-  const storedTasks = await getAllTasks()
+  const localTasks = await getAllTasks()
+  const serverTasks = await getServerTasks().catch(() => null)
+  const serverTaskIds = new Set(serverTasks?.map((task) => task.id) ?? [])
+  const storedTasks = serverTasks
+    ? [...serverTasks, ...localTasks.filter((task) => !serverTaskIds.has(task.id))].sort((a, b) => b.createdAt - a.createdAt)
+    : localTasks
   const storedAgentConversations = normalizeAgentConversations(await getAllAgentConversations())
   let loadedAgentConversations = mergeAgentConversationsForStorage(storedAgentConversations, legacyAgentConversations)
   const currentAgentConversations = normalizeAgentConversations(useStore.getState().agentConversations)
@@ -4753,6 +4758,7 @@ async function executeTask(taskId: string) {
       params: task.params,
       inputImageDataUrls: inputDataUrls,
       maskDataUrl,
+      taskId,
       onFalRequestEnqueued: (request) => {
         falRequestInfo = request
         updateTaskInStore(taskId, {
@@ -5252,6 +5258,7 @@ export async function removeMultipleTasks(taskIds: string[]) {
   setTasks(remaining)
   for (const id of taskIds) {
     await dbDeleteTask(id)
+    await deleteServerTask(id).catch(() => undefined)
   }
 
   // 找出其他任务仍引用的图片
@@ -5324,6 +5331,7 @@ export async function removeTask(task: TaskRecord) {
   const remaining = await scrubAgentOutputPayloadsForDeletedTasks([task], tasks.filter((t) => t.id !== task.id))
   setTasks(remaining)
   await dbDeleteTask(task.id)
+  await deleteServerTask(task.id).catch(() => undefined)
 
   // 找出其他任务仍引用的图片
   const stillUsed = new Set<string>()

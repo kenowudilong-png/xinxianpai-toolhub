@@ -688,7 +688,7 @@ function userToPublic(user: any) {
   }
 }
 
-function listTasksForUser(userId: string, limit = 50, offset = 0) {
+function listTasksForUser(userId: string, limit = 10000, offset = 0) {
   const db = getUserDb(userId)
   const tasks = db.prepare('SELECT * FROM tasks ORDER BY created_at DESC LIMIT ? OFFSET ?').all(limit, offset) as any[]
   const imagesStmt = db.prepare('SELECT * FROM task_images WHERE task_id = ? ORDER BY created_at ASC')
