@@ -14,6 +14,7 @@ import { nanoid } from 'nanoid'
 import { LRUCache } from 'lru-cache'
 import { zipSync, strToU8 } from 'fflate'
 import OSS from 'ali-oss'
+import { appendImageFormFile, dataUrlToBuffer } from './imageInput.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
@@ -880,16 +881,6 @@ function joinApiUrl(baseUrl: string, endpoint: string) {
   return `${baseUrl.replace(/\/+$/, '')}/${endpoint.replace(/^\/+/, '')}`
 }
 
-function dataUrlToBuffer(dataUrl: string) {
-  const match = /^data:([^;,]+)?(;base64)?,(.*)$/s.exec(dataUrl)
-  if (!match) throw new Error('Invalid data URL')
-  const mime = match[1] || 'application/octet-stream'
-  const isBase64 = Boolean(match[2])
-  const payload = match[3] || ''
-  const buffer = isBase64 ? Buffer.from(payload, 'base64') : Buffer.from(decodeURIComponent(payload), 'utf8')
-  return { mime, buffer }
-}
-
 function bufferToDataUrl(buffer: Buffer, mime: string) {
   return `data:${mime};base64,${buffer.toString('base64')}`
 }
@@ -1023,12 +1014,10 @@ async function callUpstreamGenerate(profile: any, body: any) {
     if (params.n > 1) formData.append('n', String(params.n))
     formData.append('response_format', 'b64_json')
     inputImages.forEach((dataUrl, index) => {
-      const file = dataUrlToBuffer(dataUrl)
-      formData.append('image[]', new Blob([file.buffer], { type: file.mime }), `input-${index + 1}.png`)
+      appendImageFormFile(formData, 'image[]', dataUrl, `input-${index + 1}`)
     })
     if (body?.maskDataUrl) {
-      const mask = dataUrlToBuffer(body.maskDataUrl)
-      formData.append('mask', new Blob([mask.buffer], { type: mask.mime }), 'mask.png')
+      appendImageFormFile(formData, 'mask', body.maskDataUrl, 'mask', 'png')
     }
     const response = await fetch(joinApiUrl(baseUrl, 'images/edits'), { method: 'POST', headers, body: formData })
     if (!response.ok) await throwUpstreamError(response, 'images/edits', { provider: profile.provider, model: profile.model, size: params.size, quality: params.quality, n: params.n || 1, inputImages: inputImages.length, hasMask: Boolean(body?.maskDataUrl) })
